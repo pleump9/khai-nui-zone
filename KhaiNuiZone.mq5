@@ -14,9 +14,8 @@
 //+------------------------------------------------------------------+
 
 input double  LotSize  = 0.01;     // Lot size for the Buy order
-input int     Slippage = 3;       // Slippage in points
-input int     MagicNumber = 123456; // Magic number for identifying orders
 input double  takeProfitMoney = 1;  // Take Profit amount in money
+input int zoneRange = 50;           // Zone range in points
 
 CTrade trade; // Create an instance of the CTrade class
 
@@ -53,7 +52,7 @@ void OnTick()
    else
      {
       // Check profit of existing positions
-      if(CheckPositionsProfit() <= takeProfitMoney)
+      if(CheckPositionsProfit() >= takeProfitMoney)
         {
          // If profit is enough, close all positions
          CloseAllPositions();
@@ -66,18 +65,40 @@ void OnTick()
 //+------------------------------------------------------------------+
 void OpenBuyOrder()
   {
-   double askPrice = SymbolInfoDouble(_Symbol, SYMBOL_ASK); // Current Ask price
+   double buyPrice = SymbolInfoDouble(_Symbol, SYMBOL_ASK); // Current Ask price for Buy order
 
 // Place a Buy order using the CTrade class
    if(trade.Buy(LotSize, _Symbol, 0, 0, 0, "Buy order"))
      {
       Print("Buy order placed successfully!");
+
+      // Now place a Sell Stop order at (buyPrice - zoneRange)
+      double sellStopPrice = buyPrice - zoneRange * _Point; // Convert points to price
+      OpenSellStopOrder(sellStopPrice);
      }
    else
      {
       // Handle the error
       int errorCode = GetLastError();
       Print("Error placing Buy order: ", errorCode);
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Function to place Sell Stop order                                |
+//+------------------------------------------------------------------+
+void OpenSellStopOrder(double sellStopPrice)
+  {
+// Place a Sell Stop order below the Buy price using the CTrade class
+   if(trade.SellStop(LotSize, sellStopPrice, _Symbol, 0, 0, 0, 0, "Sell Stop Order"))
+     {
+      Print("Sell Stop order placed at price: ", sellStopPrice);
+     }
+   else
+     {
+      // Handle the error
+      int errorCode = GetLastError();
+      Print("Error placing Sell Stop order: ", errorCode);
      }
   }
 
